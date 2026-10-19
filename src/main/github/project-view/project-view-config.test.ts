@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  fetchFieldsContinuation,
   fetchProjectViewsPage,
   finalizeView,
   resetVerticalGroupByCapabilityForTests,
@@ -150,6 +151,7 @@ describe('project-level fields', () => {
           projectV2: {
             ...page.data.organization.projectV2,
             fields: {
+              pageInfo: { hasNextPage: true, endCursor: 'fields-next' },
               nodes: [
                 null,
                 {
@@ -169,15 +171,38 @@ describe('project-level fields', () => {
     expect(vi.mocked(runGraphql).mock.calls[0]?.[0]).toMatch(/id title url\s+fields\(first:50\)/)
     expect(result).toMatchObject({
       ok: true,
-      projectFields: [{ kind: 'single-select', id: 'f_priority', name: 'Priority' }]
+      projectFields: [{ kind: 'single-select', id: 'f_priority', name: 'Priority' }],
+      projectFieldsEndCursor: 'fields-next'
     })
+  })
+
+  it('continues project fields through the same node query views use', async () => {
+    vi.mocked(runGraphql).mockResolvedValueOnce({
+      ok: true,
+      data: {
+        node: {
+          id: 'project',
+          fields: {
+            pageInfo: { hasNextPage: false, endCursor: null },
+            nodes: [{ id: 'f_51', name: 'Extra', dataType: 'TEXT' }]
+          }
+        }
+      }
+    })
+    const result = await fetchFieldsContinuation('project', 'fields-next')
+    expect(vi.mocked(runGraphql).mock.calls[0]?.[0]).toMatch(/\.\.\. on ProjectV2 \{/)
+    expect(vi.mocked(runGraphql).mock.calls[0]?.[1]).toEqual({
+      nodeId: 'project',
+      after: 'fields-next'
+    })
+    expect(result).toMatchObject({ ok: true, fields: [{ id: 'f_51' }] })
   })
 
   it('leaves project fields out of the query unless asked, as the view tab listing does', async () => {
     vi.mocked(runGraphql).mockResolvedValueOnce(okPage())
     const result = await fetchProjectViewsPage(args)
     expect(vi.mocked(runGraphql).mock.calls[0]?.[0]).not.toMatch(/id title url\s+fields\(/)
-    expect(result).toMatchObject({ ok: true, projectFields: [] })
+    expect(result).toMatchObject({ ok: true, projectFields: [], projectFieldsEndCursor: null })
   })
 })
 

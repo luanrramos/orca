@@ -6,12 +6,12 @@ import { isRenderableProjectViewLayout } from '../../../shared/github/project-ty
 import { assertPositiveInt, assertSlug } from './internals'
 import {
   fetchProjectViewsPage,
-  fetchViewFieldsContinuation,
+  fetchFieldsContinuation,
   finalizeView,
   matchesSelector,
   type RawProjectView
 } from './project-view-config'
-import type { RawProjectV2Field } from './project-view-field-normalization'
+import { normalizeField, type RawProjectV2Field } from './project-view-field-normalization'
 import { fetchAllItems, fetchItemsCountOnly } from './project-view-items'
 
 // ─── Public: getProjectViewTable ──────────────────────────────────────
@@ -38,6 +38,7 @@ export async function getProjectViewTable(
   let cursor: string | null = null
   let project: { id: string; title: string; url: string } | null = null
   let projectFields: GitHubProjectField[] = []
+  let projectFieldsEndCursor: string | null = null
   let selectedRaw: RawProjectView | null = null
   let matchStrength: 'id' | 'number' | 'name' | 'default' | null = null
   const viewsSeen: RawProjectView[] = []
@@ -54,8 +55,9 @@ export async function getProjectViewTable(
       return { ok: false, error: page.error }
     }
     project = page.project
-    if (projectFields.length === 0) {
-      projectFields = page.projectFields
+    if (cursor === null) {
+      projectFields = [...page.projectFields]
+      projectFieldsEndCursor = page.projectFieldsEndCursor
     }
     for (const v of page.views) {
       viewsSeen.push(v)
@@ -109,11 +111,23 @@ export async function getProjectViewTable(
   let extraFields: RawProjectV2Field[] = []
   const fieldsPi = selectedRaw.fields?.pageInfo
   if (fieldsPi?.hasNextPage === true && typeof fieldsPi.endCursor === 'string' && selectedRaw.id) {
-    const cont = await fetchViewFieldsContinuation(selectedRaw.id, fieldsPi.endCursor, args.host)
+    const cont = await fetchFieldsContinuation(selectedRaw.id, fieldsPi.endCursor, args.host)
     if (!cont.ok) {
       return { ok: false, error: cont.error }
     }
     extraFields = cont.fields
+  }
+  if (projectFieldsEndCursor !== null) {
+    // Why: project fields only feed the View menu's choices, so a failed page keeps the first page instead of failing the view.
+    const cont = await fetchFieldsContinuation(project.id, projectFieldsEndCursor, args.host)
+    if (cont.ok) {
+      for (const f of cont.fields) {
+        const n = normalizeField(f)
+        if (n) {
+          projectFields.push(n)
+        }
+      }
+    }
   }
 
   const finalized = finalizeView(selectedRaw, extraFields)

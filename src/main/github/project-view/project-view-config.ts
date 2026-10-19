@@ -21,7 +21,10 @@ type RawProjectConfig = {
   id?: string
   title?: string
   url?: string
-  fields?: { nodes?: (RawProjectV2Field | null)[] }
+  fields?: {
+    pageInfo?: { hasNextPage?: boolean; endCursor?: string | null }
+    nodes?: (RawProjectV2Field | null)[]
+  }
   views?: {
     pageInfo?: { hasNextPage?: boolean; endCursor?: string | null }
     nodes?: (RawProjectView | null)[]
@@ -88,6 +91,8 @@ export async function fetchProjectViewsPage(args: {
       project: { id: string; title: string; url: string }
       /** Every project field, including ones the views hide. */
       projectFields: GitHubProjectField[]
+      /** Set when project fields continue past the first page. */
+      projectFieldsEndCursor: string | null
       views: RawProjectView[]
       hasNextPage: boolean
       endCursor: string | null
@@ -98,7 +103,10 @@ export async function fetchProjectViewsPage(args: {
   const afterArg = args.after ? `, after: $after` : ''
   const afterVar = args.after ? `$after:String!, ` : ''
   const projectFieldsSelection = args.includeProjectFields
-    ? `fields(first:${FIELDS_PAGE_SIZE}) { nodes { ...FieldConfig } }`
+    ? `fields(first:${FIELDS_PAGE_SIZE}) {
+        pageInfo { hasNextPage endCursor }
+        nodes { ...FieldConfig }
+      }`
     : ''
   const buildQuery = (): string => `
     query(${afterVar}$owner:String!, $num:Int!) {
@@ -160,28 +168,40 @@ export async function fetchProjectViewsPage(args: {
       projectFields.push(n)
     }
   }
+  const fieldsPi = project.fields?.pageInfo
   return {
     ok: true,
     project: { id: project.id, title: project.title ?? '', url: project.url ?? '' },
     projectFields,
+    projectFieldsEndCursor:
+      fieldsPi?.hasNextPage === true && typeof fieldsPi.endCursor === 'string'
+        ? fieldsPi.endCursor
+        : null,
     views,
     hasNextPage: pageInfo?.hasNextPage === true,
     endCursor: pageInfo?.endCursor ?? null
   }
 }
 
-export async function fetchViewFieldsContinuation(
-  viewId: string,
+export async function fetchFieldsContinuation(
+  nodeId: string,
   after: string,
   host?: string
 ): Promise<
   { ok: true; fields: RawProjectV2Field[] } | { ok: false; error: GitHubProjectViewError }
 > {
-  // Why: address the view directly via node(id:) instead of re-walking all views each page — one round-trip per field page.
+  // Why: address the view or project directly via node(id:) instead of re-walking all views each page — one round-trip per field page.
   const query = `
-    query($after:String!, $viewId:ID!) {
-      node(id:$viewId) {
+    query($after:String!, $nodeId:ID!) {
+      node(id:$nodeId) {
         ... on ProjectV2View {
+          id
+          fields(first:${FIELDS_PAGE_SIZE}, after:$after) {
+            pageInfo { hasNextPage endCursor }
+            nodes { ...FieldConfig }
+          }
+        }
+        ... on ProjectV2 {
           id
           fields(first:${FIELDS_PAGE_SIZE}, after:$after) {
             pageInfo { hasNextPage endCursor }
@@ -203,17 +223,17 @@ export async function fetchViewFieldsContinuation(
           nodes?: (RawProjectV2Field | null)[]
         }
       } | null
-    }>(query, { viewId, after: cursor }, projectGhExecOptions(host))
+    }>(query, { nodeId, after: cursor }, projectGhExecOptions(host))
     if (!res.ok) {
       return res
     }
-    const view = res.data.node ?? null
-    if (!view) {
-      return { ok: false, error: driftError('view disappeared during field pagination') }
+    const node = res.data.node ?? null
+    if (!node) {
+      return { ok: false, error: driftError('node disappeared during field pagination') }
     }
-    const nodes = (view.fields?.nodes ?? []).filter((f): f is RawProjectV2Field => f !== null)
+    const nodes = (node.fields?.nodes ?? []).filter((f): f is RawProjectV2Field => f !== null)
     collected.push(...nodes)
-    const pi = view.fields?.pageInfo
+    const pi = node.fields?.pageInfo
     cursor = pi?.hasNextPage === true && typeof pi.endCursor === 'string' ? pi.endCursor : null
   }
   return { ok: true, fields: collected }
