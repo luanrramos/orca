@@ -12,6 +12,7 @@ import {
 } from '../../../../shared/native-chat-slash-commands'
 import { withNativeChatBtwCommand } from '../../../../shared/native-chat-btw'
 import { structuredSlashCommands } from '../../../../shared/structured-agent-session-composer'
+import { withNativeChatResumeCommand } from './use-native-chat-resume-command'
 import type { NativeChatStructuredComposerTransport } from './native-chat-composer-types'
 
 export type NativeChatComposerCatalog = {
@@ -24,7 +25,7 @@ export type NativeChatComposerCatalog = {
  * loaded — the only list that includes this repo's own commands and the skills
  * that reach the session through plugin roots — so it wins whenever it is
  * present. The curated per-agent catalog remains the answer for the PTY lane and
- * for a host that predates the report.
+ * for a host that predates the report. A structured chat adds Orca's `/resume`.
  */
 export function useNativeChatComposerCatalog(
   agent: AgentType,
@@ -40,7 +41,7 @@ export function useNativeChatComposerCatalog(
       : reported === undefined
         ? structuredSlashCommands(conversationCommands, agent)
         : sessionSlashCommandSuggestions(agent, reported)
-    return withNativeChatBtwCommand(commands)
+    return withNativeChatBtwCommand(structured ? withNativeChatResumeCommand(commands) : commands)
   }, [agent, conversationCommands, reported, structured])
   const sessionSkills = useMemo(
     () =>

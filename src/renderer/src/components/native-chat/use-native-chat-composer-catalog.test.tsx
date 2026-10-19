@@ -16,6 +16,7 @@ import {
   structuredSlashCommands
 } from '../../../../shared/structured-agent-session-composer'
 import type { DiscoveredSkill } from '../../../../shared/skills'
+import { withNativeChatResumeCommand } from './use-native-chat-resume-command'
 
 function transport(sessionCommands?: NativeChatStructuredComposerTransport['sessionCommands']) {
   return { sessionCommands } as NativeChatStructuredComposerTransport
@@ -29,7 +30,9 @@ describe('composer catalog authority', () => {
     )
     expect(pty.result.current.sessionSkills).toBeUndefined()
     const oldHost = renderHook(() => useNativeChatComposerCatalog('claude', transport()))
-    expect(oldHost.result.current.agentCommands).toEqual(structuredSlashCommands())
+    expect(oldHost.result.current.agentCommands).toEqual(
+      withNativeChatBtwCommand(withNativeChatResumeCommand(structuredSlashCommands()))
+    )
     expect(oldHost.result.current.sessionSkills).toBeUndefined()
   })
   it('offers supported conversation commands when the host has no reported catalog', () => {
@@ -49,34 +52,41 @@ describe('composer catalog authority', () => {
       'effort',
       'btw',
       'clear',
-      'compact'
+      'compact',
+      'resume'
     ])
     rerender({ conversationCommands: ['clear'] })
     expect(result.current.agentCommands.map(({ name }) => name)).toEqual([
       'model',
       'effort',
       'btw',
-      'clear'
+      'clear',
+      'resume'
     ])
   })
   // Codex reports no catalog, so the hook's fallback is its entire `/` menu; the
   // agent has to reach structuredSlashCommands or `/goal` is invisible there.
   it('offers Codex the commands its model runs from message text', () => {
     const { result } = renderHook(() => useNativeChatComposerCatalog('codex', transport()))
-    expect(result.current.agentCommands).toEqual(structuredSlashCommands([], 'codex'))
+    expect(result.current.agentCommands).toEqual(
+      withNativeChatBtwCommand(withNativeChatResumeCommand(structuredSlashCommands([], 'codex')))
+    )
     expect(result.current.agentCommands.map(({ name }) => name)).toContain('goal')
   })
   it('leaves the Claude route on its own commands, reported or not', () => {
     const reported = [{ name: 'init', kind: 'command' as const }]
     const withReport = renderHook(() => useNativeChatComposerCatalog('claude', transport(reported)))
     expect(withReport.result.current.agentCommands).toEqual(
-      withNativeChatBtwCommand(sessionSlashCommandSuggestions('claude', reported))
+      withNativeChatBtwCommand(
+        withNativeChatResumeCommand(sessionSlashCommandSuggestions('claude', reported))
+      )
     )
     const withoutReport = renderHook(() => useNativeChatComposerCatalog('claude', transport()))
     expect(withoutReport.result.current.agentCommands.map(({ name }) => name)).toEqual([
       'model',
       'effort',
-      'btw'
+      'btw',
+      'resume'
     ])
   })
   it('respects empty catalogs and command-only catalogs without reviving disk skills', () => {
@@ -88,11 +98,41 @@ describe('composer catalog authority', () => {
         }
       }
     )
-    expect(result.current.sessionSkills).toEqual([])
-    expect(result.current.agentCommands.map(({ name }) => name)).toEqual(['btw'])
+    expect(result.current).toEqual({
+      agentCommands: withNativeChatBtwCommand(withNativeChatResumeCommand([])),
+      sessionSkills: []
+    })
     rerender({ reported: [{ name: 'custom-command', kind: 'command' }] })
-    expect(result.current.sessionSkills).toEqual([])
-    expect(result.current.agentCommands.map(({ name }) => name)).toEqual(['btw', 'custom-command'])
+    expect(result.current).toEqual({
+      agentCommands: withNativeChatBtwCommand(
+        withNativeChatResumeCommand([{ name: 'custom-command' }])
+      ),
+      sessionSkills: []
+    })
+  })
+  // Orca's /resume takes an agent command's place, but a skill of that name stays the agent's.
+  it("puts Orca's /resume in place of an agent command and beside a namesake skill", () => {
+    const reported = [
+      { name: 'review', kind: 'command' as const },
+      { name: 'resume', kind: 'command' as const, description: 'Resume a saved chat' },
+      { name: 'resume', kind: 'skill' as const }
+    ]
+    const { result } = renderHook(() => useNativeChatComposerCatalog('claude', transport(reported)))
+    const catalog = result.current
+    const rows = (query: string) =>
+      buildNativeChatPickerItems(catalog.agentCommands, [], query, '/', catalog.sessionSkills)
+    expect(rows('').map(({ kind, name }) => `${kind}:${name}`)).toEqual([
+      'command:btw',
+      'command:review',
+      'command:resume',
+      'skill:resume'
+    ])
+    expect(rows('r')[0]).toMatchObject({ name: 'review' })
+    expect(rows('resume')[0]).toMatchObject({
+      orcaOwned: true,
+      description: 'Open Agent Session History',
+      skillCollision: false
+    })
   })
 })
 
@@ -155,7 +195,8 @@ it('Enter completes a known pre-init skill while still dispatching a built-in co
         setCaret: vi.fn()
       })
     },
-    { initialProps: { activeSuggestion: 2 } }
+    // Commands lead: /btw, clear, then Orca's /resume, then the skill.
+    { initialProps: { activeSuggestion: 3 } }
   )
   const enter = { key: 'Enter', nativeEvent: {}, preventDefault: vi.fn() } as unknown as Parameters<
     typeof result.current
@@ -199,7 +240,14 @@ describe('OpenCode chat skills', () => {
       reportMayListSkills: agent !== 'claude',
       isSendCommand: (name) => isStructuredAgentSessionComposerCommand(`/${name}`, agent)
     })
-    return buildNativeChatPickerItems(commands, skills, '', '/', result.current.sessionSkills)
+    // Orca's own /resume row sits in every structured catalog; these cases are about the agent's.
+    return buildNativeChatPickerItems(
+      commands,
+      skills,
+      '',
+      '/',
+      result.current.sessionSkills
+    ).filter((item) => !(item.kind === 'command' && item.orcaOwned))
   }
   const rows = (...args: Parameters<typeof items>) =>
     items(...args).map((item) => `${item.kind}:${item.name}`)
