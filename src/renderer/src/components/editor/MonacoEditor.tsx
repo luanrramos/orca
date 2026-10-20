@@ -22,6 +22,7 @@ import { useMonacoContentSyncBridge } from './use-monaco-content-sync-bridge'
 import { useMonacoMarkdownAnnotations } from './use-monaco-markdown-annotations'
 import { useMonacoEditorDecorations } from './use-monaco-editor-decorations'
 import { useMonacoEditorMount } from './use-monaco-editor-mount'
+import { useMonacoGitBlame } from './use-monaco-git-blame'
 import { useDocumentDarkTheme } from '@/hooks/use-document-dark-theme'
 import { snapshotMonacoViewState } from './monaco-view-state-persistence'
 import { MonacoMarkdownAnnotationOverlay } from './MonacoMarkdownAnnotationOverlay'
@@ -44,6 +45,8 @@ type MonacoEditorProps = {
   worktreeId?: string
   markdownAnnotationsEnabled?: boolean
   conflictDecorationsEnabled?: boolean
+  /** Surface offers current-line blame; the setting and file eligibility still decide. */
+  gitBlameSurface?: boolean
   readOnly?: boolean
   liveTail?: boolean
   autoHeight?: boolean
@@ -66,6 +69,7 @@ export default function MonacoEditor({
   worktreeId,
   markdownAnnotationsEnabled = false,
   conflictDecorationsEnabled = false,
+  gitBlameSurface = false,
   readOnly = false,
   liveTail = false,
   autoHeight = false
@@ -188,6 +192,13 @@ export default function MonacoEditor({
     language,
     markdownDocuments,
     conflictDecorationsEnabled
+  })
+
+  useMonacoGitBlame({
+    mountedEditor,
+    fileId,
+    content,
+    enabled: gitBlameSurface && settings?.editorGitBlame === true
   })
 
   const handleMount = useMonacoEditorMount({
