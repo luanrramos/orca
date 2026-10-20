@@ -69,8 +69,12 @@ export function formatGitBlameHoverMarkdown(commit: GitBlameCommit, now: number)
   }
   const date = new Date(commit.authorTime).toLocaleString()
   const email = commit.authorEmail ? ` <${commit.authorEmail}>` : ''
+  const age = formatGitBlameAge(commit.authorTime, now)
+  // Why separate paragraphs: the hover is anchored at line end, so one long row runs past the pane.
   return [
-    `**${escapeMarkdown(commit.author)}**${escapeMarkdown(email)}, ${escapeMarkdown(formatGitBlameAge(commit.authorTime, now))} (${escapeMarkdown(date)})`,
+    `**${escapeMarkdown(commit.author)}**${escapeMarkdown(email)}`,
+    '',
+    `${escapeMarkdown(age)} · ${escapeMarkdown(date)}`,
     '',
     escapeMarkdown(commit.summary),
     '',
