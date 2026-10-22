@@ -63,5 +63,19 @@ export function handleTerminalWorkspaceEditorShortcut({
       return true
     }
   }
+  // Why: VS Code's centered-layout command is unbound; keep the same opt-in shortcut (#31236).
+  if (!event.repeat && matchShortcut('editor.toggleCenteredLayout')) {
+    const state = useAppStore.getState()
+    if (state.activeTabType === 'editor' && state.activeFileId) {
+      const activeFile = state.openFiles.find((file) => file.id === state.activeFileId)
+      if (activeFile?.mode === 'edit') {
+        event.preventDefault()
+        notifyTerminalCapture('editor.toggleCenteredLayout')
+        const centeredOn = state.settings?.editorCenteredLayout === true
+        void state.updateSettings({ editorCenteredLayout: !centeredOn })
+        return true
+      }
+    }
+  }
   return false
 }
