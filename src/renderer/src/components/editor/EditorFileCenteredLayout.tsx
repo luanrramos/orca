@@ -13,16 +13,13 @@ export function EditorFileCenteredLayout({
   enabled: boolean | undefined
   children: ReactNode
 }): React.JSX.Element {
-  if (!isFileEditorCenteredLayoutEnabled(enabled)) {
-    return <>{children}</>
-  }
-
+  const centered = isFileEditorCenteredLayoutEnabled(enabled)
   return (
     <div
-      className={buildFileEditorCenteredLayoutShellClassName(true)}
-      data-editor-centered-layout="true"
+      className={buildFileEditorCenteredLayoutShellClassName(enabled)}
+      data-editor-centered-layout={centered ? 'true' : undefined}
     >
-      <div className={buildFileEditorCenteredLayoutContentClassName(true)}>{children}</div>
+      <div className={buildFileEditorCenteredLayoutContentClassName(enabled)}>{children}</div>
     </div>
   )
 }

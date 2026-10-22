@@ -3,14 +3,18 @@ import { describe, expect, it } from 'vitest'
 import { EditorFileCenteredLayout } from './EditorFileCenteredLayout'
 
 describe('EditorFileCenteredLayout', () => {
-  it('leaves children unwrapped when the preference is off', () => {
+  it('keeps a stable full-width shell when the preference is off', () => {
     const html = renderToStaticMarkup(
       <EditorFileCenteredLayout enabled={false}>
         <div data-editor-surface="code" />
       </EditorFileCenteredLayout>
     )
 
-    expect(html).toBe('<div data-editor-surface="code"></div>')
+    expect(html).toContain('data-editor-surface="code"')
+    expect(html).not.toContain('data-editor-centered-layout')
+    expect(html).not.toContain('justify-center')
+    expect(html).not.toContain('max-w-4xl')
+    expect(html.startsWith('<div class="h-full min-h-0 w-full"')).toBe(true)
   })
 
   it('wraps children in a centered max-width column when enabled', () => {

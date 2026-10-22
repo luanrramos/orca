@@ -23,6 +23,8 @@ type EditorPanelActionsMenuProps = {
   editorWordWrap: boolean
   /** File editor centered-column preference (`settings.editorCenteredLayout`). */
   editorCenteredLayout: boolean
+  /** Why: keep this item on the same surfaces as the shortcut (#31236). */
+  showCenteredLayout: boolean
   shouldShowMarkdownExportAction: boolean
   canExportMarkdownToPdf: boolean
   canShowMarkdownFrontmatterToggle: boolean
@@ -42,6 +44,7 @@ export function EditorPanelActionsMenu({
   diffShowWhitespace,
   editorWordWrap,
   editorCenteredLayout,
+  showCenteredLayout,
   shouldShowMarkdownExportAction,
   canExportMarkdownToPdf,
   canShowMarkdownFrontmatterToggle,
@@ -87,7 +90,7 @@ export function EditorPanelActionsMenu({
             'Word Wrap'
           )}
         </DropdownMenuCheckboxItem>
-        {!isDiffSurface ? (
+        {showCenteredLayout ? (
           <DropdownMenuCheckboxItem
             checked={editorCenteredLayout}
             onCheckedChange={onToggleEditorCenteredLayout}

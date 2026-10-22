@@ -61,6 +61,7 @@ describe('EditorPanelActionsMenu', () => {
         diffShowWhitespace={false}
         editorWordWrap
         editorCenteredLayout={false}
+        showCenteredLayout
         shouldShowMarkdownExportAction
         canExportMarkdownToPdf
         canShowMarkdownFrontmatterToggle
@@ -93,6 +94,7 @@ describe('EditorPanelActionsMenu', () => {
         diffShowWhitespace: false,
         editorWordWrap: true,
         editorCenteredLayout: false,
+        showCenteredLayout: true,
         shouldShowMarkdownExportAction: false,
         canExportMarkdownToPdf: false,
         canShowMarkdownFrontmatterToggle: false,
@@ -123,6 +125,7 @@ describe('EditorPanelActionsMenu', () => {
         diffShowWhitespace: false,
         editorWordWrap: false,
         editorCenteredLayout: true,
+        showCenteredLayout: false,
         shouldShowMarkdownExportAction: false,
         canExportMarkdownToPdf: false,
         canShowMarkdownFrontmatterToggle: false,
@@ -152,6 +155,7 @@ describe('EditorPanelActionsMenu', () => {
         diffShowWhitespace: true,
         editorWordWrap: false,
         editorCenteredLayout: true,
+        showCenteredLayout: false,
         shouldShowMarkdownExportAction: false,
         canExportMarkdownToPdf: false,
         canShowMarkdownFrontmatterToggle: false,
@@ -183,6 +187,7 @@ describe('EditorPanelActionsMenu', () => {
         diffShowWhitespace: false,
         editorWordWrap: true,
         editorCenteredLayout: true,
+        showCenteredLayout: true,
         shouldShowMarkdownExportAction: false,
         canExportMarkdownToPdf: false,
         canShowMarkdownFrontmatterToggle: false,
@@ -210,6 +215,7 @@ describe('EditorPanelActionsMenu', () => {
         diffShowWhitespace: false,
         editorWordWrap: false,
         editorCenteredLayout: true,
+        showCenteredLayout: false,
         shouldShowMarkdownExportAction: false,
         canExportMarkdownToPdf: false,
         canShowMarkdownFrontmatterToggle: false,
@@ -224,5 +230,30 @@ describe('EditorPanelActionsMenu', () => {
     )
 
     expect(checkboxItems.list.map(({ label }) => label)).not.toContain('Centered Layout')
+  })
+
+  it('hides Centered Layout on combined diffs even when Word Wrap stays file-scoped', () => {
+    renderToStaticMarkup(
+      React.createElement(EditorPanelActionsMenu, {
+        isDiffSurface: false,
+        diffWordWrap: false,
+        diffShowWhitespace: false,
+        editorWordWrap: true,
+        editorCenteredLayout: true,
+        showCenteredLayout: false,
+        shouldShowMarkdownExportAction: false,
+        canExportMarkdownToPdf: false,
+        canShowMarkdownFrontmatterToggle: false,
+        markdownFrontmatterVisible: false,
+        onToggleDiffWordWrap: () => {},
+        onToggleDiffWhitespace: () => {},
+        onToggleEditorWordWrap: () => {},
+        onToggleEditorCenteredLayout: () => {},
+        onToggleMarkdownFrontmatter: () => {},
+        onExportMarkdownToPdf: () => {}
+      })
+    )
+
+    expect(checkboxItems.list.map(({ label }) => label)).toEqual(['Word Wrap'])
   })
 })

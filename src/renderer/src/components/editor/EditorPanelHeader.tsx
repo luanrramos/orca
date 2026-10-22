@@ -13,6 +13,7 @@ import type { EditorHeaderOpenFileState } from './editor-header'
 import { DiffNotesSendMenu } from './DiffNotesSendMenu'
 import { EditorPanelActionsMenu } from './EditorPanelActionsMenu'
 import { EditorFileLocationMenuItems } from './EditorFileLocationMenuItems'
+import { canToggleFileEditorCenteredLayout } from './file-editor-centered-layout'
 import { translate } from '@/i18n/i18n'
 import { EditorPanelHeaderPath } from './EditorPanelHeaderPath'
 import { useDiffNavigation } from './diff-navigation-context'
@@ -104,6 +105,11 @@ export function EditorPanelHeader({
   const { changeCount, goToPreviousDiff, goToNextDiff } = useDiffNavigation()
   const previousChangeShortcut = useShortcutKeyDetails('editor.previousChange')
   const nextChangeShortcut = useShortcutKeyDetails('editor.nextChange')
+  // Why: isDiffSurface is single-diff OR changes; combined diffs still hide via mode.
+  const showCenteredLayout = canToggleFileEditorCenteredLayout({
+    mode: activeFile.mode,
+    isChangesMode: isDiffSurface && !isSingleDiff
+  })
 
   return (
     <div className="editor-header">
@@ -334,6 +340,7 @@ export function EditorPanelHeader({
         diffShowWhitespace={diffShowWhitespace}
         editorWordWrap={editorWordWrap}
         editorCenteredLayout={editorCenteredLayout}
+        showCenteredLayout={showCenteredLayout}
         shouldShowMarkdownExportAction={shouldShowMarkdownExportAction}
         canExportMarkdownToPdf={canExportMarkdownToPdf}
         canShowMarkdownFrontmatterToggle={canShowMarkdownFrontmatterToggle}
