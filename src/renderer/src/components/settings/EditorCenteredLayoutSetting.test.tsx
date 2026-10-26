@@ -6,9 +6,13 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { getDefaultSettings } from '../../../../shared/constants'
 
+const { storeState } = vi.hoisted(() => ({
+  storeState: { settingsSearchQuery: '' }
+}))
+
 vi.mock('../../store', () => ({
   useAppStore: (selector: (state: { settingsSearchQuery: string }) => unknown) =>
-    selector({ settingsSearchQuery: '' })
+    selector(storeState)
 }))
 
 import { EditorCenteredLayoutSetting } from './EditorCenteredLayoutSetting'
@@ -23,6 +27,7 @@ afterEach(() => {
   container?.remove()
   root = null
   container = null
+  storeState.settingsSearchQuery = ''
 })
 
 function renderSetting(editorCenteredLayout: boolean | undefined, updateSettings = vi.fn()) {
@@ -69,6 +74,13 @@ describe('EditorCenteredLayoutSetting', () => {
     act(() => on?.click())
 
     expect(updateSettings).toHaveBeenCalledWith({ editorCenteredLayout: true })
+  })
+
+  it('stays visible for the same search aliases as the Editor pane catalog', () => {
+    storeState.settingsSearchQuery = 'ultrawide'
+    const { container } = renderSetting(false)
+
+    expect(container.textContent).toContain('Centered Layout')
   })
 
   it('persists the off choice without changing the word-wrap preference', () => {

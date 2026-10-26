@@ -4,12 +4,12 @@ export function isFileEditorCenteredLayoutEnabled(
   return editorCenteredLayout === true
 }
 
-// Why: the overflow menu hides this on diff/changes surfaces; the shortcut must match (#31236).
+// Why: conflict-review and check-details are dedicated surfaces; only file-editor tabs toggle (#31236).
 export function canToggleFileEditorCenteredLayout(args: {
   mode: 'edit' | 'diff' | 'conflict-review' | 'markdown-preview' | 'check-details'
   isChangesMode: boolean
 }): boolean {
-  return args.mode !== 'diff' && !args.isChangesMode
+  return !args.isChangesMode && (args.mode === 'edit' || args.mode === 'markdown-preview')
 }
 
 export function buildFileEditorCenteredLayoutShellClassName(

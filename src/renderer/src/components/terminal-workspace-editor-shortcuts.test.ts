@@ -100,6 +100,16 @@ describe('handleTerminalWorkspaceEditorShortcut', () => {
     expect(updateSettings).not.toHaveBeenCalled()
   })
 
+  it('ignores centered layout on conflict-review and check-details tabs', () => {
+    storeState.openFiles[0]!.mode = 'conflict-review'
+    expect(runCenteredLayoutShortcut().consumed).toBe(false)
+    expect(updateSettings).not.toHaveBeenCalled()
+
+    storeState.openFiles[0]!.mode = 'check-details'
+    expect(runCenteredLayoutShortcut().consumed).toBe(false)
+    expect(updateSettings).not.toHaveBeenCalled()
+  })
+
   it('ignores centered layout when the shortcut does not match', () => {
     const consumed = handleTerminalWorkspaceEditorShortcut({
       event: shortcutEvent(),

@@ -26,12 +26,18 @@ describe('file-editor centered layout', () => {
     expect(buildFileEditorCenteredLayoutContentClassName(false)).not.toContain('max-w-4xl')
   })
 
-  it('matches the overflow menu: on for non-diff tabs, off for diffs and changes mode', () => {
+  it('allows the toggle on file-editor tabs and hides it on dedicated surfaces', () => {
     expect(canToggleFileEditorCenteredLayout({ mode: 'edit', isChangesMode: false })).toBe(true)
     expect(
       canToggleFileEditorCenteredLayout({ mode: 'markdown-preview', isChangesMode: false })
     ).toBe(true)
     expect(canToggleFileEditorCenteredLayout({ mode: 'diff', isChangesMode: false })).toBe(false)
     expect(canToggleFileEditorCenteredLayout({ mode: 'edit', isChangesMode: true })).toBe(false)
+    expect(
+      canToggleFileEditorCenteredLayout({ mode: 'conflict-review', isChangesMode: false })
+    ).toBe(false)
+    expect(canToggleFileEditorCenteredLayout({ mode: 'check-details', isChangesMode: false })).toBe(
+      false
+    )
   })
 })

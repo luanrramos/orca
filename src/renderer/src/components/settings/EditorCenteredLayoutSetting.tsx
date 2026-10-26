@@ -2,6 +2,7 @@ import type React from 'react'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import { translate } from '@/i18n/i18n'
 import { SearchableSetting } from './SearchableSetting'
+import { translateSearchKeyword } from './settings-search-keywords'
 import { Label } from '../ui/label'
 import { SettingsSegmentedControl } from './SettingsFormControls'
 
@@ -25,11 +26,23 @@ export function EditorCenteredLayoutSetting({
         'Center the file editor in a readable column on wide panes, like VS Code.'
       )}
       keywords={[
-        'editor',
-        'centered layout',
-        'center editor',
-        'max width',
-        'ultrawide',
+        ...translateSearchKeyword('auto.components.settings.general.search.e1ee631696', 'editor'),
+        ...translateSearchKeyword(
+          'auto.components.settings.general.search.centeredLayoutKw',
+          'centered layout'
+        ),
+        ...translateSearchKeyword(
+          'auto.components.settings.general.search.centerEditorKw',
+          'center editor'
+        ),
+        ...translateSearchKeyword(
+          'auto.components.settings.general.search.maxWidthKw',
+          'max width'
+        ),
+        ...translateSearchKeyword(
+          'auto.components.settings.general.search.ultrawideKw',
+          'ultrawide'
+        ),
         'readable'
       ]}
       className="flex items-center justify-between gap-4 py-2"
